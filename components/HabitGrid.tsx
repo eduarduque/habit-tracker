@@ -1,9 +1,10 @@
 "use client";
 
 import { startTransition, useOptimistic } from "react";
-import { Check } from "lucide-react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { toggleHabitLog } from "@/lib/actions";
+import { HabitFormDialog } from "@/components/HabitFormDialog";
+import { deleteHabit, toggleHabitLog } from "@/lib/actions";
 import {
   computeHabitStats,
   getDayOfWeekLabel,
@@ -48,6 +49,15 @@ export function HabitGrid({
       toggleHabitLog(habitId, day);
     });
   }
+
+  function handleDelete(habitId: number, name: string) {
+    if (!window.confirm(`Delete "${name}"? This removes all its tracked days.`)) return;
+    startTransition(() => {
+      deleteHabit(habitId);
+    });
+  }
+
+  const totalCols = 1 + numDays + 5;
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
@@ -100,8 +110,37 @@ export function HabitGrid({
             return (
               <tr key={habit.id} className="group">
                 <td className="sticky left-0 z-10 border-b border-r border-border bg-card px-3 py-1.5 text-left font-sans group-hover:bg-secondary/40">
-                  <span className="mr-1.5">{habit.emoji}</span>
-                  {habit.name}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      <span className="mr-1.5">{habit.emoji}</span>
+                      {habit.name}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <HabitFormDialog
+                        year={year}
+                        month={month}
+                        numDays={numDays}
+                        habit={{ id: habit.id, name: habit.name, emoji: habit.emoji, goal: habit.goal }}
+                        trigger={
+                          <button
+                            type="button"
+                            aria-label={`Edit ${habit.name}`}
+                            className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        }
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Delete ${habit.name}`}
+                        onClick={() => handleDelete(habit.id, habit.name)}
+                        className="rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
                 </td>
                 {days.map((completed, i) => {
                   const day = i + 1;
@@ -148,6 +187,26 @@ export function HabitGrid({
             );
           })}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={totalCols} className="border-t border-border p-1">
+              <HabitFormDialog
+                year={year}
+                month={month}
+                numDays={numDays}
+                trigger={
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 rounded px-2 py-1 font-sans text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Habit
+                  </button>
+                }
+              />
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
