@@ -1,9 +1,7 @@
-import type { HabitModel, HabitLogModel, WellnessLogModel } from "@/lib/generated/prisma/models";
-
-export type HabitWithLogs = HabitModel & { logs: HabitLogModel[] };
+import type { StoredHabit, WellnessEntry } from "@/lib/storage";
 
 export type HabitStats = {
-  id: number;
+  id: string;
   name: string;
   emoji: string;
   goal: number;
@@ -23,11 +21,8 @@ export function getDayOfWeekLabel(year: number, month: number, day: number) {
   return DOW[new Date(year, month - 1, day).getDay()];
 }
 
-export function computeHabitStats(habit: HabitWithLogs, numDays: number): HabitStats {
-  const byDay = new Map<number, boolean>(
-    habit.logs.map((l: HabitLogModel): [number, boolean] => [l.day, l.completed])
-  );
-  const days: boolean[] = Array.from({ length: numDays }, (_, i) => byDay.get(i + 1) ?? false);
+export function computeHabitStats(habit: StoredHabit, numDays: number): HabitStats {
+  const days: boolean[] = Array.from({ length: numDays }, (_, i) => habit.logs[i + 1] ?? false);
   const actual = days.filter(Boolean).length;
   const left = Math.max(0, habit.goal - actual);
   const percent = habit.goal > 0 ? Math.round((actual / habit.goal) * 100) : 0;
@@ -85,11 +80,13 @@ export type WellnessRow = {
   sleep: number | null;
 };
 
-export function buildWellnessRows(wellness: WellnessLogModel[], numDays: number): WellnessRow[] {
-  const byDay = new Map(wellness.map((w) => [w.day, w]));
+export function buildWellnessRows(
+  wellness: Record<number, WellnessEntry>,
+  numDays: number
+): WellnessRow[] {
   return Array.from({ length: numDays }, (_, i) => {
     const day = i + 1;
-    const row = byDay.get(day);
-    return { day, mood: row?.mood ?? null, sleep: row?.sleep ?? null };
+    const entry = wellness[day];
+    return { day, mood: entry?.mood ?? null, sleep: entry?.sleep ?? null };
   });
 }

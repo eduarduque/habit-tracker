@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createHabit, updateHabit } from "@/lib/actions";
 
 type HabitFormValues = {
   name: string;
@@ -23,16 +22,14 @@ type HabitFormValues = {
 
 export function HabitFormDialog({
   trigger,
-  year,
-  month,
   numDays,
   habit,
+  onSubmit,
 }: {
   trigger: ReactNode;
-  year: number;
-  month: number;
   numDays: number;
-  habit?: { id: number; name: string; emoji: string; goal: number };
+  habit?: { id: string; name: string; emoji: string; goal: number };
+  onSubmit: (values: HabitFormValues) => void;
 }) {
   const isEdit = !!habit;
   const [open, setOpen] = useState(false);
@@ -42,7 +39,6 @@ export function HabitFormDialog({
     goal: habit?.goal ?? Math.min(30, numDays),
   });
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -60,18 +56,12 @@ export function HabitFormDialog({
     e.preventDefault();
     setError(null);
 
-    startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateHabit(habit.id, values);
-        } else {
-          await createHabit(year, month, values);
-        }
-        setOpen(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-      }
-    });
+    try {
+      onSubmit(values);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    }
   }
 
   return (
@@ -133,9 +123,7 @@ export function HabitFormDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Add habit"}
-            </Button>
+            <Button type="submit">{isEdit ? "Save changes" : "Add habit"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
