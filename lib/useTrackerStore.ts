@@ -10,6 +10,7 @@ import {
   newHabitId,
   saveStore,
   type MonthData,
+  type StoredHabit,
   type Store,
   type WellnessEntry,
 } from "@/lib/storage";
@@ -33,6 +34,21 @@ export function useTrackerStore(year: number, month: number) {
   const hydrated = store !== null;
   const key = monthKey(year, month);
   const monthData: MonthData = store?.[key] ?? emptyMonth();
+
+  function replaceStore(next: Store) {
+    setStore(next);
+  }
+
+  function copyHabitsFromMonth(sourceKey: string) {
+    updateMonth((data) => {
+      const source = store?.[sourceKey];
+      if (!source) return data;
+      return {
+        ...data,
+        habits: source.habits.map((h) => ({ ...h, id: newHabitId(), logs: {} })),
+      };
+    });
+  }
 
   function updateMonth(updater: (data: MonthData) => MonthData) {
     setStore((prev) => {
@@ -101,6 +117,30 @@ export function useTrackerStore(year: number, month: number) {
     }));
   }
 
+  function restoreHabit(habit: StoredHabit) {
+    updateMonth((data) => ({
+      ...data,
+      habits: data.habits.some((h) => h.id === habit.id)
+        ? data.habits
+        : [...data.habits, { ...habit, sortOrder: data.habits.length }],
+    }));
+  }
+
+  function moveHabit(habitId: string, direction: "up" | "down") {
+    updateMonth((data) => {
+      const sorted = [...data.habits].sort((a, b) => a.sortOrder - b.sortOrder);
+      const index = sorted.findIndex((h) => h.id === habitId);
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (index === -1 || targetIndex < 0 || targetIndex >= sorted.length) return data;
+
+      [sorted[index], sorted[targetIndex]] = [sorted[targetIndex], sorted[index]];
+      return {
+        ...data,
+        habits: sorted.map((h, i) => ({ ...h, sortOrder: i })),
+      };
+    });
+  }
+
   const emptyEntry: WellnessEntry = { mood: null, sleep: null };
 
   function updateWellness(day: number, entry: Partial<WellnessEntry>) {
@@ -115,11 +155,16 @@ export function useTrackerStore(year: number, month: number) {
 
   return {
     hydrated,
+    store,
     monthData,
     toggleHabitLog,
     createHabit,
     updateHabit,
     deleteHabit,
+    restoreHabit,
+    moveHabit,
     updateWellness,
+    replaceStore,
+    copyHabitsFromMonth,
   };
 }

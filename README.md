@@ -7,11 +7,15 @@ A dark, dense habit & consistency tracker modeled on "The Art of Consistency" sp
 ## Features
 
 - **Habit matrix grid** — days 1–31 grouped into Week 1–5, sticky habit-name column, instant checkbox toggles
-- **Fully editable** — add, rename, re-emoji, retarget, or delete any habit right from the grid
+- **Fully editable** — add, rename, re-emoji, retarget, reorder (↑/↓), or delete any habit right from the grid
+- **Undo** — deleting a habit shows a 5-second "Undo" toast before it's gone for good
+- **Streaks** — current/longest consecutive-day streak per habit
 - **Analytics** — per-habit Goal/Actual/Left/Progress/%, plus Daily Progress and Weekly Performance charts
-- **Wellness tracker** — daily mood (1–5) and sleep hours
+- **Wellness tracker** — daily mood (1–5) and sleep hours, plus a sleep-vs-completion insight
 - **Leaderboard** — top habits ranked by completion %
-- **Month navigation** — Jan–Dec tabs with year stepper; each month keeps its own habits and goals
+- **Month navigation** — Jan–Dec tabs with year stepper; each month keeps its own habits and goals, with a one-click prompt to copy last month's habits forward
+- **Export/Import** — download a JSON backup or restore from one, since everything lives in this browser only
+- **Installable** — has a web app manifest so it can be added to your phone's home screen
 - Comes pre-loaded with sample habits for the current and previous month so the dashboard isn't empty on first open — replace them with your own anytime
 
 ## Stack

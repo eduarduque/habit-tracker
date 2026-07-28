@@ -9,6 +9,8 @@ export type HabitStats = {
   left: number;
   percent: number;
   days: boolean[]; // index 0 = day 1
+  currentStreak: number;
+  longestStreak: number;
 };
 
 export function daysInMonth(year: number, month: number) {
@@ -21,11 +23,37 @@ export function getDayOfWeekLabel(year: number, month: number, day: number) {
   return DOW[new Date(year, month - 1, day).getDay()];
 }
 
-export function computeHabitStats(habit: StoredHabit, numDays: number): HabitStats {
+// `lastDay` is the most recent day that "counts" for a current streak — the
+// current day-of-month if viewing this month, or the full month otherwise —
+// so an in-progress month isn't falsely treated as a broken streak just
+// because its remaining days haven't happened yet.
+function computeStreaks(days: boolean[], lastDay: number) {
+  let longest = 0;
+  let run = 0;
+  for (const day of days) {
+    run = day ? run + 1 : 0;
+    longest = Math.max(longest, run);
+  }
+
+  let current = 0;
+  for (let i = lastDay - 1; i >= 0; i--) {
+    if (!days[i]) break;
+    current++;
+  }
+
+  return { current, longest };
+}
+
+export function computeHabitStats(
+  habit: StoredHabit,
+  numDays: number,
+  lastDay: number = numDays
+): HabitStats {
   const days: boolean[] = Array.from({ length: numDays }, (_, i) => habit.logs[i + 1] ?? false);
   const actual = days.filter(Boolean).length;
   const left = Math.max(0, habit.goal - actual);
   const percent = habit.goal > 0 ? Math.round((actual / habit.goal) * 100) : 0;
+  const { current, longest } = computeStreaks(days, lastDay);
 
   return {
     id: habit.id,
@@ -36,6 +64,8 @@ export function computeHabitStats(habit: StoredHabit, numDays: number): HabitSta
     left,
     percent,
     days,
+    currentStreak: current,
+    longestStreak: longest,
   };
 }
 
@@ -79,6 +109,32 @@ export type WellnessRow = {
   mood: number | null;
   sleep: number | null;
 };
+
+export function computeWellnessInsight(
+  wellnessRows: WellnessRow[],
+  daily: { day: number; percent: number }[]
+): string | null {
+  const percentByDay = new Map(daily.map((d) => [d.day, d.percent]));
+
+  const goodSleep: number[] = [];
+  const poorSleep: number[] = [];
+  for (const row of wellnessRows) {
+    if (row.sleep == null) continue;
+    const percent = percentByDay.get(row.day);
+    if (percent == null) continue;
+    (row.sleep >= 7 ? goodSleep : poorSleep).push(percent);
+  }
+
+  if (goodSleep.length < 3 || poorSleep.length < 3) return null;
+
+  const avg = (arr: number[]) => arr.reduce((sum, v) => sum + v, 0) / arr.length;
+  const diff = Math.round(avg(goodSleep) - avg(poorSleep));
+  if (Math.abs(diff) < 5) return null;
+
+  return diff > 0
+    ? `You complete ${diff}% more habits on days you sleep 7+ hours.`
+    : `You complete ${Math.abs(diff)}% more habits on days you sleep under 7 hours.`;
+}
 
 export function buildWellnessRows(
   wellness: Record<number, WellnessEntry>,

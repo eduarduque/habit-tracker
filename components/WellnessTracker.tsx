@@ -1,22 +1,26 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDayOfWeekLabel, type WellnessRow } from "@/lib/stats";
+import { computeWellnessInsight, getDayOfWeekLabel, type WellnessRow } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 
 const MOOD_STEPS = ["#184f95", "#1c5cab", "#256abf", "#5598e7", "#86b6ef"];
 
 export function WellnessTracker({
   rows,
+  daily,
   year,
   month,
   onUpdate,
 }: {
   rows: WellnessRow[];
+  daily: { day: number; percent: number }[];
   year: number;
   month: number;
   onUpdate: (day: number, entry: { mood?: number; sleep?: number }) => void;
 }) {
+  const insight = computeWellnessInsight(rows, daily);
+
   function cycleMood(day: number, current: number | null) {
     const mood = ((current ?? 0) % 5) + 1;
     onUpdate(day, { mood });
@@ -98,6 +102,7 @@ export function WellnessTracker({
             </tr>
           </tbody>
         </table>
+        {insight && <p className="mt-3 text-xs text-muted-foreground">💡 {insight}</p>}
       </CardContent>
     </Card>
   );

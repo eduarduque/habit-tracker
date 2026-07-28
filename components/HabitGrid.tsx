@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Flame, Pencil, Plus, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { HabitFormDialog } from "@/components/HabitFormDialog";
 import { getDayOfWeekLabel, getWeekGroups, type HabitStats } from "@/lib/stats";
@@ -14,6 +14,7 @@ export function HabitGrid({
   onToggleDay,
   onDeleteHabit,
   onSaveHabit,
+  onMoveHabit,
 }: {
   habitStats: HabitStats[];
   year: number;
@@ -25,6 +26,7 @@ export function HabitGrid({
     habitId: string | undefined,
     values: { name: string; emoji: string; goal: number }
   ) => void;
+  onMoveHabit: (habitId: string, direction: "up" | "down") => void;
 }) {
   const weekGroups = getWeekGroups(numDays);
 
@@ -33,7 +35,7 @@ export function HabitGrid({
     onDeleteHabit(habitId, name);
   }
 
-  const totalCols = 1 + numDays + 5;
+  const totalCols = 1 + numDays + 6;
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
@@ -52,7 +54,7 @@ export function HabitGrid({
                 {g.label}
               </th>
             ))}
-            <th colSpan={5} className="border-b border-border bg-secondary/40 px-2 py-1 text-center font-sans font-medium text-muted-foreground">
+            <th colSpan={6} className="border-b border-border bg-secondary/40 px-2 py-1 text-center font-sans font-medium text-muted-foreground">
               Analytics
             </th>
           </tr>
@@ -73,11 +75,12 @@ export function HabitGrid({
             <th className="border-b border-r border-border px-2 py-1 text-center text-muted-foreground">Actual</th>
             <th className="border-b border-r border-border px-2 py-1 text-center text-muted-foreground">Left</th>
             <th className="border-b border-r border-border px-2 py-1 text-center text-muted-foreground">Progress</th>
-            <th className="border-b border-border px-2 py-1 text-center text-muted-foreground">%</th>
+            <th className="border-b border-r border-border px-2 py-1 text-center text-muted-foreground">%</th>
+            <th className="border-b border-border px-2 py-1 text-center text-muted-foreground">Streak</th>
           </tr>
         </thead>
         <tbody>
-          {habitStats.map((habit) => (
+          {habitStats.map((habit, index) => (
             <tr key={habit.id} className="group">
               <td className="sticky left-0 z-10 border-b border-r border-border bg-card px-3 py-1.5 text-left font-sans group-hover:bg-secondary/40">
                 <div className="flex items-center justify-between gap-2">
@@ -86,6 +89,24 @@ export function HabitGrid({
                     {habit.name}
                   </span>
                   <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      aria-label={`Move ${habit.name} up`}
+                      disabled={index === 0}
+                      onClick={() => onMoveHabit(habit.id, "up")}
+                      className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move ${habit.name} down`}
+                      disabled={index === habitStats.length - 1}
+                      onClick={() => onMoveHabit(habit.id, "down")}
+                      className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
                     <HabitFormDialog
                       numDays={numDays}
                       habit={{ id: habit.id, name: habit.name, emoji: habit.emoji, goal: habit.goal }}
@@ -142,7 +163,7 @@ export function HabitGrid({
               </td>
               <td
                 className={cn(
-                  "border-b border-border px-2 py-1.5 text-right font-semibold",
+                  "border-b border-r border-border px-2 py-1.5 text-right font-semibold",
                   habit.percent >= 100
                     ? "text-emerald-400"
                     : habit.percent >= 60
@@ -151,6 +172,20 @@ export function HabitGrid({
                 )}
               >
                 {habit.percent}%
+              </td>
+              <td className="border-b border-border px-2 py-1.5">
+                <div
+                  className="flex items-center justify-center gap-1"
+                  title={`Longest streak: ${habit.longestStreak} day${habit.longestStreak === 1 ? "" : "s"}`}
+                >
+                  {habit.currentStreak > 0 && (
+                    <Flame className="h-3 w-3 shrink-0 text-orange-400" strokeWidth={2.5} />
+                  )}
+                  <span className={cn(habit.currentStreak > 0 ? "text-foreground" : "text-muted-foreground")}>
+                    {habit.currentStreak}
+                  </span>
+                  <span className="text-muted-foreground">/{habit.longestStreak}</span>
+                </div>
               </td>
             </tr>
           ))}

@@ -51,6 +51,43 @@ export function emptyMonth(): MonthData {
   return { habits: [], wellness: {} };
 }
 
+export function exportStoreAsJson(store: Store): string {
+  return JSON.stringify({ app: "habit-tracker", version: 1, data: store }, null, 2);
+}
+
+export function downloadStoreBackup(store: Store) {
+  if (!isBrowser()) return;
+  const json = exportStoreAsJson(store);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `habit-tracker-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function isValidMonthData(value: unknown): value is MonthData {
+  if (!value || typeof value !== "object") return false;
+  const md = value as Record<string, unknown>;
+  return Array.isArray(md.habits) && typeof md.wellness === "object" && md.wellness !== null;
+}
+
+export function parseStoreBackup(raw: string): Store {
+  const parsed = JSON.parse(raw);
+  const data = parsed && typeof parsed === "object" && "data" in parsed ? parsed.data : parsed;
+  if (!data || typeof data !== "object") {
+    throw new Error("File doesn't look like a habit-tracker backup.");
+  }
+  for (const value of Object.values(data as Record<string, unknown>)) {
+    if (!isValidMonthData(value)) {
+      throw new Error("File doesn't look like a habit-tracker backup.");
+    }
+  }
+  return data as Store;
+}
+
 export function newHabitId() {
   return isBrowser() && "randomUUID" in crypto
     ? crypto.randomUUID()
